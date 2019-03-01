@@ -1,0 +1,62 @@
+CREATE TABLE tweets_json_new (
+   id BIGINT,
+   created_at STRING,
+   source STRING,
+   favorited BOOLEAN,
+   retweeted_status STRUCT<
+     text:STRING,
+     user:STRUCT<screen_name:STRING,name:STRING>,
+     retweet_count:INT>,
+   entities STRUCT<
+     urls:ARRAY<STRUCT<expanded_url:STRING>>,
+     user_mentions:ARRAY<STRUCT<screen_name:STRING,name:STRING>>,
+     hashtags:ARRAY<STRUCT<text:STRING>>>,
+   place STRUCT<
+     country_code:STRING,	
+     full_name:STRING>,
+   retweet_count STRING,
+   text STRING,
+   user STRUCT<
+     screen_name:STRING,
+     name:STRING,
+     friends_count:INT,
+     followers_count:INT,
+     location:STRING,
+     statuses_count:INT,
+     verified:BOOLEAN,
+     utc_offset:INT,
+     time_zone:STRING>,
+   in_reply_to_screen_name STRING
+ ) 
+ ROW FORMAT SERDE 'com.cloudera.hive.serde.JSONSerDe';
+
+add  jar Desktop/hive-serdes-1.0-SNAPSHOT.jar;
+DROP TABLE tweets_json;
+load data local inpath 'Desktop/tweet.json' overwrite into table tweets_json;
+
+Ques #1
+create table hashtag as select id as id,entities.hashtags.text as words from tweets_json;
+
+create table hashtag_word as select id as id,hashtag from hashtag LATERAL VIEW explode(words) w as hashtag;
+
+select hashtag, count(hashtag) from hashtag_word group by hashtag;
+
+Ques #1 
+
+Create table hash as select entities.hashtags.text as hashs from tweets_json
+
+Create table hash_new as select explode(hashs) from hash
+
+select col, count(col) from hash_new group by col;
+
+Ques #2
+
+select statuses_count from tweets_json where statuses_count = (select MAX(statuses_count) from tweets_json group by user.location );
+
+create table tweets_by_state as select retweet_count as tweet_count,split(place.full_name,',') as state from tweets_json_new where place.country_code='US';
+
+Ques #3
+
+select id,user.followers_count from tweets_json_new group by id,user.followers_count order by user.followers_count desc limit 10;
+
+
